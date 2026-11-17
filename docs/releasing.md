@@ -2,7 +2,7 @@
 
 ## GitHub Actions（推荐）
 
-1. 在 `CHANGELOG.md` 的 `Unreleased` 下写本项目改动，提交并推送到 `main`。
+1. 有本项目改动时，在 `CHANGELOG.md` 新增 `Unreleased` 章节记录，提交并推送到 `main`；发版后自动移除该章节，不保留空标题。
 2. 打开仓库 **Actions → Release → Run workflow**，选择 `main`，输入新的项目版本号，例如 `0.1.1`。
 3. 可先勾选 `dry_run` 演练。演练会实际拉取、验证、构建和打包，产物在该次运行的 Artifacts 中；不会提交、推送 tag 或发布 Release。
 4. 正式发版不勾选 `dry_run`。验证成功后自动提交版本和依赖锁定文件、创建 tag、发布 Release，附 `.alfredworkflow` 和 `SHA256SUMS`。

@@ -91,19 +91,23 @@ def render_changelog(changelog, version, date, old, upstream):
     version_tuple(version)
     if re.search(r'^## \['+re.escape(version)+r'\]', changelog, re.M):
         raise ValueError(f'Changelog already contains {version}')
-    match = re.search(r'^## \[Unreleased\]\s*\n(.*?)(?=^## |\Z)', changelog, re.M | re.S)
-    if not match:
-        raise ValueError('Changelog needs exactly one ## [Unreleased] section')
+    match = re.search(r'^## \[Unreleased\][ \t]*\n(.*?)(?=^## |\Z)', changelog, re.M | re.S)
+    if match:
+        before, after = changelog[:match.start()], changelog[match.end():]
+    else:
+        first_release = re.search(r'^## ', changelog, re.M)
+        position = first_release.start() if first_release else len(changelog)
+        before, after = changelog[:position].rstrip()+'\n\n', changelog[position:]
     manifest = manifest_from_release(upstream)
     new = manifest['version']
-    notes = match[1].strip()
+    notes = match[1].strip() if match else ''
     dependency = f'- 内置 CodexBar {new}（锁定官方双架构 CLI）。[上游发布说明]({manifest["release"]})。'
     if old != new:
         dependency = (f'- CodexBar {old} → {new}。[上游发布说明]({manifest["release"]})；'
                       f'[完整更新比较](https://github.com/{UPSTREAM}/compare/v{old}...v{new})。')
     notes = (notes+'\n\n' if notes else '')+'### 依赖更新\n\n'+dependency+'\n'
-    section = f'## [Unreleased]\n\n## [{version}] - {date}\n\n{notes}\n'
-    return (changelog[:match.start()]+section+changelog[match.end():]).rstrip()+'\n', notes
+    section = f'## [{version}] - {date}\n\n{notes}\n'
+    return (before+section+after).rstrip()+'\n', notes
 
 
 def prepare(root, version, upstream):

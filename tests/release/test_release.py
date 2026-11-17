@@ -47,7 +47,8 @@ class ReleaseTests(unittest.TestCase):
     def test_changelog_consumes_unreleased_and_records_upstream_upgrade(self):
         original = '# Changelog\n\n## [Unreleased]\n\n- 本项目修复。\n\n## [0.3.2] - 2026-11-17\n\n- 历史内容\n'
         updated, notes = release.render_changelog(original, '0.4.0', '2026-11-17', '0.84.0', upstream())
-        self.assertIn('## [Unreleased]\n\n## [0.4.0]', updated)
+        self.assertNotIn('## [Unreleased]', updated)
+        self.assertIn('## [0.4.0]', updated)
         self.assertIn('本项目修复', notes)
         self.assertIn('0.84.0 → 0.85.0', notes)
         self.assertIn('/compare/v0.84.0...v0.85.0', notes)
@@ -62,6 +63,20 @@ class ReleaseTests(unittest.TestCase):
         self.assertNotIn('→', notes)
         self.assertTrue(updated.endswith('\n'))
         self.assertFalse(updated.endswith('\n\n'))
+
+    def test_changelog_without_unreleased_preserves_history(self):
+        for original in ('# Changelog\n', '# Changelog\n\nIntro\n\n## [0.1.0]\n\n- History\n', '# Changelog\n\nIntro\n\n## [Unreleased]\n\n## [0.1.0]\n\n- History\n'):
+            with self.subTest(original=original):
+                updated, notes = release.render_changelog(original, '0.2.0', '2026-11-17', '0.84.0', upstream())
+                self.assertNotIn('Unreleased', updated)
+                self.assertIn('0.84.0 → 0.85.0', notes)
+                self.assertEqual(release.release_notes(updated, '0.2.0'), notes)
+                self.assertTrue(updated.endswith('\n'))
+                self.assertFalse(updated.endswith('\n\n'))
+                if 'History' in original:
+                    self.assertIn('Intro\n\n## [0.2.0]', updated)
+                    self.assertTrue(updated.endswith('## [0.1.0]\n\n- History\n'))
+                    self.assertNotIn('History', notes)
 
     def test_checksum_mismatch_does_not_replace_cached_asset(self):
         from unittest.mock import patch

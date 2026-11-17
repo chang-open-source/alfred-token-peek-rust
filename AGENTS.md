@@ -9,7 +9,7 @@
 ## Changes
 
 - Keep changes focused and add meaningful tests for behavioral changes.
-- Keep `README.md` (English) and `README.zh.md` aligned and concise. Record user-facing changes under `CHANGELOG.md` → `Unreleased`.
+- Keep `README.md` (English) and `README.zh.md` aligned and concise. Record pending user-facing changes under `CHANGELOG.md` → `Unreleased`; omit empty sections.
 - Never commit credentials, real account responses, downloads, or generated binaries. Use synthetic fixtures.
 - Preserve unknown-versus-zero usage and cached-data freshness labels. Do not infer authentication from app detection.
 
