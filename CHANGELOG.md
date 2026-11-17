@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-17
+
 ### 首次发布
 
 - 在 Alfred 中查看 Codex、Claude 套餐额度及重置时间，支持按服务筛选。
@@ -17,3 +19,7 @@
 - 自动测试覆盖数据解析、缓存、超时、并发刷新、应用检测和发版脚本。
 - Codex 真实查询及 Alfred 本机界面已在开发阶段验证；Claude 真实账号查询尚未确认成功。
 - 安装包未做 Developer ID 签名或公证，跨机器安装体验尚未完整验证。
+
+### 依赖更新
+
+- 内置 CodexBar 0.84.0（锁定官方双架构 CLI）。[上游发布说明](https://github.com/steipete/CodexBar/releases/tag/v0.84.0)。
