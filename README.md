@@ -8,7 +8,13 @@ Check **Codex and Claude plan usage and reset times** from Alfred. Built in Rust
 
 Requires **macOS 14+ and Alfred 5 Powerpack**.
 
-Download `.alfredworkflow` from [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) and double-click to import.
+One-command install:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek-rust/main/scripts/install.sh | bash
+```
+
+Downloads the latest release, verifies SHA256, and opens Alfred. Confirm the import to finish. Or download `.alfredworkflow` from [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) and double-click it.
 
 Sign in to the relevant service and configure a supported [CodexBar data source](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/configuration.md). Detecting an installed app does not confirm authentication.
 

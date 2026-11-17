@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- 新增一键安装命令，下载并校验最新 Release 后打开 Alfred 导入。
+
 ## [0.1.0] - 2026-11-17
 
 - 在 Alfred 中查看 Codex、Claude 用量与重置时间。

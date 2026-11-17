@@ -8,7 +8,13 @@
 
 需要 **macOS 14+、Alfred 5 Powerpack**。
 
-从 [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) 下载 `.alfredworkflow`，双击导入。
+一键安装：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek-rust/main/scripts/install.sh | bash
+```
+
+自动下载最新版本、校验 SHA256 并打开 Alfred，确认导入即可。也可从 [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) 下载 `.alfredworkflow` 后双击导入。
 
 请先登录对应服务，并配置可用的 [CodexBar 数据源](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/configuration.md)。检测到已安装应用不代表已登录。
 
