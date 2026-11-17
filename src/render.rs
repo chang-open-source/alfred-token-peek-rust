@@ -29,8 +29,15 @@ pub fn reset_text(raw: Option<&str>) -> String {
                 "已到重置时间".into()
             } else if minutes < 60 {
                 format!("{minutes} 分钟后重置")
-            } else {
+            } else if minutes < 24 * 60 {
                 format!("{} 小时 {} 分钟后重置", minutes / 60, minutes % 60)
+            } else {
+                format!(
+                    "{} 天 {} 小时 {} 分钟后重置",
+                    minutes / (24 * 60),
+                    minutes / 60 % 24,
+                    minutes % 60
+                )
             };
             format!(
                 "{remaining} · {}",

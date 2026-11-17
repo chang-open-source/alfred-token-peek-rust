@@ -112,3 +112,16 @@ fn formats_cache_age_in_readable_units() {
         .unwrap()
         .contains("1 小时 5 分钟前获取"));
 }
+
+#[test]
+fn reset_countdown_splits_days_hours_and_minutes() {
+    for (minutes, expected) in [
+        (6, "6 分钟后重置"),
+        (66, "1 小时 6 分钟后重置"),
+        (1440, "1 天 0 小时 0 分钟后重置"),
+        (147 * 60 + 6, "6 天 3 小时 6 分钟后重置"),
+    ] {
+        let reset = chrono::Utc::now() + chrono::Duration::seconds(minutes * 60 + 30);
+        assert!(token_peek::render::reset_text(Some(&reset.to_rfc3339())).starts_with(expected));
+    }
+}
