@@ -14,7 +14,7 @@
 curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek-rust/main/scripts/install.sh | bash
 ```
 
-自动下载最新版本、校验 SHA256 并打开 Alfred，确认导入即可。也可从 [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) 下载 `.alfredworkflow` 后双击导入。
+自动下载并校验最新版本，直接安装到 Alfred，保留已有工作流设置，无需确认导入。也可从 [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) 下载 `.alfredworkflow` 后双击导入。
 
 请先登录对应服务，并配置可用的 [CodexBar 数据源](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/configuration.md)。检测到已安装应用不代表已登录。
 
