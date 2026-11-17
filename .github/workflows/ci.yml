@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests and package (macOS)
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Test release tooling
+        run: python3 -m unittest discover -s tests/release -v
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Lint Rust
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Test Rust
+        run: cargo test --locked
+      - name: Build and verify locked package
+        run: |
+          cargo fetch --locked
+          python3 scripts/package.py
+          python3 scripts/verify_package.py
+          git diff --exit-code
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: workflow-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/alfred-token-peek.alfredworkflow
+            dist/SHA256SUMS
