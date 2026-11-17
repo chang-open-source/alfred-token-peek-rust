@@ -24,6 +24,17 @@ def version_tuple(value):
     return tuple(map(int, value.split('.')))
 
 
+def bump_version(current, bump):
+    major, minor, patch = version_tuple(current)
+    if bump == 'major':
+        return f'{major + 1}.0.0'
+    if bump == 'minor':
+        return f'{major}.{minor + 1}.0'
+    if bump == 'patch':
+        return f'{major}.{minor}.{patch + 1}'
+    raise ValueError(f'Unknown release bump: {bump!r}')
+
+
 def validate_next_version(version, current):
     if version_tuple(version) <= version_tuple(current):
         raise ValueError(f'New version {version} must be greater than {current}')
@@ -159,13 +170,18 @@ def prepare(root, version, upstream):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
+    next_version = commands.add_parser('next-version', help='Calculate the next project version')
+    next_version.add_argument('--bump', choices=('patch', 'minor', 'major'), required=True)
     commands.add_parser('upstream', help='Read latest stable metadata without changing files')
     prep = commands.add_parser('prepare', help='Update version, pinned CLI and Changelog; does not commit or publish')
     prep.add_argument('--version', required=True)
     notes = commands.add_parser('notes', help='Extract one version section for recovery/publishing')
     notes.add_argument('--version', required=True)
     args = parser.parse_args()
-    if args.command == 'upstream':
+    if args.command == 'next-version':
+        current = tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version']
+        print(bump_version(current, args.bump))
+    elif args.command == 'upstream':
         print(json.dumps(manifest_from_release(latest_release()), indent=2))
     elif args.command == 'notes':
         print(release_notes((ROOT/'CHANGELOG.md').read_text(), args.version), end='')

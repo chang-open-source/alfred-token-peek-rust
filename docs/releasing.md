@@ -1,7 +1,7 @@
 # 发版
 
 1. 有项目改动时，在 `CHANGELOG.md` 的 `Unreleased` 章节记录并推送到 `main`。
-2. 打开 **Actions → Release → Run workflow**，输入新版本号。
+2. 打开 **Actions → Release → Run workflow**，选择 `patch`（修订）、`minor`（功能）或 `major`（大版本），自动计算版本号。
 3. 勾选 `dry_run` 仅构建验证；取消勾选则自动提交版本、创建 tag 并发布安装包。
 
 发版时拉取 CodexBar 最新稳定版，验证双架构文件及 SHA256，并记录依赖更新。普通构建使用锁定版本。需要 Actions 的 `contents: write` 权限。

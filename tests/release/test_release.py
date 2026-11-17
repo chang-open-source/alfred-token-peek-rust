@@ -20,6 +20,12 @@ def upstream(version='0.85.0'):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_bump_increments_selected_component_and_resets_lower_components(self):
+        for bump, expected in [('patch', '1.2.10'), ('minor', '1.3.0'), ('major', '2.0.0')]:
+            self.assertEqual(release.bump_version('1.2.9', bump), expected)
+        with self.assertRaises(ValueError):
+            release.bump_version('1.2.9', 'custom')
+
     def test_rejects_invalid_or_non_increasing_versions(self):
         for version in ('v1.0.0', '1.0', '01.2.3', '1.0.0-beta', '1.0.0\nx', '$(oops)'):
             with self.subTest(version=version), self.assertRaises(ValueError):

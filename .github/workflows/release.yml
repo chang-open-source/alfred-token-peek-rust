@@ -3,10 +3,15 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'New project version (x.y.z, greater than current)'
+      bump:
+        description: 'Version bump (automatically calculated from current version)'
         required: true
-        type: string
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
       dry_run:
         description: 'Build and validate only; do not push a commit/tag or publish'
         required: true
@@ -27,7 +32,7 @@ jobs:
     timeout-minutes: 35
     env:
       GH_TOKEN: ${{ github.token }}
-      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_BUMP: ${{ inputs.bump }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -36,6 +41,11 @@ jobs:
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
+      - name: Calculate release version
+        run: |
+          version=$(python3 scripts/release.py next-version --bump "$RELEASE_BUMP")
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Release: v$version ($RELEASE_BUMP)" >> "$GITHUB_STEP_SUMMARY"
       - name: Check version and remote tag
         run: |
           python3 - <<'PY'
@@ -78,7 +88,7 @@ jobs:
           git rev-parse HEAD > dist/BASE_COMMIT
       - uses: actions/upload-artifact@v7.0.2
         with:
-          name: release-${{ inputs.version }}
+          name: release-${{ env.RELEASE_VERSION }}
           if-no-files-found: error
           path: |
             dist/alfred-token-peek.alfredworkflow
