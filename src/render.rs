@@ -202,11 +202,12 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                 items.push(json!({"uid":format!("{p}-{i}"),"title":title,"subtitle":subtitle,"arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")},"text":{"copy":details}}));
             }
             if let Some(credits) = snapshot.reset_credits.as_ref().filter(|_| p == "codex") {
-                let expired = credits
+                let expiry = credits
                     .next_expires_at
                     .as_deref()
-                    .and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
-                    .is_some_and(|date| date <= Utc::now());
+                    .and_then(|raw| DateTime::parse_from_rfc3339(raw).ok());
+                let expired =
+                    credits.available > 0 && expiry.is_some_and(|date| date <= Utc::now());
                 let title = format!(
                     "Codex · {} {} 次",
                     if stale || expired {
@@ -216,19 +217,44 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                     },
                     credits.available
                 );
-                let subtitle = if expired {
-                    "有卡片已到期 · 刷新确认剩余次数".to_string()
-                } else if stale {
-                    "缓存已过期 · ⌘回车刷新".to_string()
-                } else if loading {
-                    "刷新中 · 回车查看用量页".to_string()
+                let expiry_text = if credits.available == 0 {
+                    "暂无可用重置卡".to_string()
+                } else if let Some(date) = expiry {
+                    let local = date.with_timezone(&Local).format("%m-%d %H:%M");
+                    if expired {
+                        format!("最近到期 {local} · 已到期，请刷新确认")
+                    } else {
+                        let seconds =
+                            (date.with_timezone(&Utc) - Utc::now()).num_seconds().max(0) as u64;
+                        format!(
+                            "最近到期 {local} · 剩余{}",
+                            compact_time(&duration_text(seconds))
+                        )
+                    }
                 } else {
-                    "回车查看用量页 · ⌘回车刷新".to_string()
+                    "到期时间未知".to_string()
                 };
+                let mut parts = Vec::new();
+                if stale {
+                    parts.push("缓存已过期".to_string());
+                }
+                if loading {
+                    parts.push("刷新中".to_string());
+                }
+                parts.push(expiry_text);
+                let subtitle = parts.join(" · ");
+                let detail = expiry
+                    .map(|date| {
+                        format!(
+                            "\n最近一张到期时间：{}",
+                            date.with_timezone(&Local).format("%Y-%m-%d %H:%M:%S %:z")
+                        )
+                    })
+                    .unwrap_or_default();
                 items.push(json!({"uid":"codex-reset-credits", "title":title,
                     "subtitle":subtitle, "arg":"codex", "valid":true,
                     "mods":{"cmd":{"arg":"refresh:codex","subtitle":"刷新重置卡次数","valid":!loading}},
-                    "icon":{"path":"icons/codex.png"}, "text":{"copy":format!("{title}\n{subtitle}")}}));
+                    "icon":{"path":"icons/codex.png"}, "text":{"copy":format!("{title}\n{subtitle}{detail}")}}));
             }
         } else {
             items.push(json!({"uid":format!("{p}-empty"),"title":format!("{name} · {}",if loading {"正在获取用量…"} else {"暂无用量"}),"subtitle":"回车打开服务用量页；使用下方刷新重试","arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"仅刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")}}));

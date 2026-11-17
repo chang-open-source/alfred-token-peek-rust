@@ -245,3 +245,40 @@ fn compact_rows_keep_detailed_information_in_copy_text() {
     assert!(copy.contains("来源"));
     assert!(copy.contains("前获取"));
 }
+
+#[test]
+fn reset_credit_expiry_shows_nearest_date_without_inventing_missing_expiry() {
+    for (expires, count, expected) in [
+        (Some("2099-01-01T00:00:00Z"), 2, "最近到期"),
+        (Some("2020-01-01T00:00:00Z"), 2, "已到期，请刷新确认"),
+        (None, 2, "到期时间未知"),
+        (Some("invalid"), 2, "到期时间未知"),
+        (None, 0, "暂无可用重置卡"),
+    ] {
+        let input = serde_json::json!({"provider":"codex","usage":{},"resetCredits":{"available":count,"nextExpiresAt":expires}});
+        let mut cache = Cache::default();
+        cache.providers.insert(
+            "codex".into(),
+            Entry {
+                snapshot: Some(parse_usage(&input.to_string(), "codex").unwrap()),
+                fetched_at: now(),
+                ..Default::default()
+            },
+        );
+        let view = render(&cache, "codex", false);
+        assert!(view["items"][0]["subtitle"]
+            .as_str()
+            .unwrap()
+            .contains(expected));
+        if expires == Some("2099-01-01T00:00:00Z") {
+            assert!(view["items"][0]["subtitle"]
+                .as_str()
+                .unwrap()
+                .contains("剩余"));
+            assert!(view["items"][0]["text"]["copy"]
+                .as_str()
+                .unwrap()
+                .contains("2099-01-01"));
+        }
+    }
+}
