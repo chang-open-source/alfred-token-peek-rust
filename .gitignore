@@ -1,0 +1,7 @@
+/target/
+/dist/
+/downloads/
+/vendor/runtime/
+/.superpowers/
+__pycache__/
+.DS_Store

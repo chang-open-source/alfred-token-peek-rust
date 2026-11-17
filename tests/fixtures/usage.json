@@ -1,0 +1,1 @@
+[{"provider":"codex","source":"oauth","usage":{"primary":{"usedPercent":28,"windowMinutes":300,"resetsAt":"2026-11-18T10:00:00Z"},"secondary":{"usedPercent":59,"windowMinutes":10080},"updatedAt":"2026-11-17T04:00:00Z","accountEmail":"not-persisted@example.com"}},{"provider":"claude","error":{"message":"not logged in"}}]

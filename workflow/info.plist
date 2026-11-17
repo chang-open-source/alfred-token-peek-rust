@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>com.chang.token-peek</string>
+	<key>connections</key>
+	<dict>
+		<key>token-peek-filter</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>token-peek-action</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+	</dict>
+	<key>createdby</key>
+	<string>Token Peek contributors</string>
+	<key>description</key>
+	<string>Codex / Claude 套餐用量 · 内置 CodexBar CLI</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>Token Peek</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>2</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>usage</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>正在加载用量…</string>
+				<key>script</key>
+				<string>./token-peek filter "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Codex · Claude · 剩余额度与重置时间</string>
+				<key>title</key>
+				<string>查看 AI 套餐用量</string>
+				<key>type</key>
+				<integer>5</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>token-peek-filter</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>./action.sh "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>5</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>token-peek-action</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string># Token Peek · 设置与帮助
+
+在 Alfred 中查看 Codex、Claude 的套餐剩余额度与重置时间。
+
+## 使用
+- 输入 `usage` 查看全部；`usage codex` / `usage claude` 筛选。
+- 回车打开对应服务的用量页；⌘C 复制当前行摘要。
+- 选择「刷新用量」立即返回列表，各服务独立更新；⌘ 回车可仅刷新选中服务。
+
+## 左侧设置
+- **Claude 显示方式**：默认自动检测 Claude Code 或 Claude 桌面版，两者均未安装时自动隐藏且不查询。选择「隐藏 Claude」可停用已安装但不使用的 Claude。
+- **自定义 CodexBar CLI**：通常留空，使用内置 0.84.0。仅需自行替换 CLI 时填写可执行文件的绝对路径，支持路径中的空格。
+- 修改后点击 **Save**，下次查询生效。
+
+## 登录与数据源
+内置 CLI 不附带账号。请先登录 Codex / Claude Code，或按 [CodexBar 配置说明](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/configuration.md) 配置数据源。
+浏览器和 CLI 可能使用不同账号；需要固定账号时请配置 CodexBar。工作流不修改 CodexBar 配置。
+
+## 刷新与排错
+- 缓存有效期 5 分钟；过期先显示旧数据并在后台刷新。
+- 每个服务最多等待 20 秒；失败后等待 30 秒再自动重试。
+- 失败时保留上次成功数据并标记过期；未知额度不等于零。
+- 出错时检查网络、登录状态及数据源；权限问题参阅 [钥匙串与权限说明](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/keychain-prompts.md)。
+- 更换账号后请手动刷新，旧缓存不会自动确认账号身份。
+
+需要 macOS 14+、Alfred 5 Powerpack。当前展示套餐额度，不估算每日 Token 或费用。
+</string>
+	<key>uidata</key>
+	<dict>
+		<key>token-peek-action</key>
+		<dict>
+			<key>xpos</key>
+			<integer>420</integer>
+			<key>ypos</key>
+			<integer>100</integer>
+		</dict>
+		<key>token-peek-filter</key>
+		<dict>
+			<key>xpos</key>
+			<integer>100</integer>
+			<key>ypos</key>
+			<integer>100</integer>
+		</dict>
+	</dict>
+	<key>variables</key>
+	<dict>
+		<key>CLAUDE_ENABLED</key>
+		<string>auto</string>
+		<key>CODEXBAR_BIN</key>
+		<string></string>
+	</dict>
+	<key>variablesdontexport</key>
+	<array/>
+	<key>version</key>
+	<string>0.0.0</string>
+	<key>webaddress</key>
+	<string>https://github.com/steipete/CodexBar</string>
+	<key>userconfigurationconfig</key>
+	<array>
+		<dict>
+			<key>variable</key>
+			<string>CLAUDE_ENABLED</string>
+			<key>type</key>
+			<string>popupbutton</string>
+			<key>label</key>
+			<string>Claude 显示方式</string>
+			<key>description</key>
+			<string>检测 Claude Code 或 Claude 桌面版；隐藏后不再查询 Claude 用量。</string>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>auto</string>
+				<key>pairs</key>
+				<array>
+					<array>
+						<string>自动检测</string>
+						<string>auto</string>
+					</array>
+					<array>
+						<string>隐藏 Claude</string>
+						<string>false</string>
+					</array>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>variable</key>
+			<string>CODEXBAR_BIN</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>label</key>
+			<string>自定义 CodexBar CLI（可选）</string>
+			<key>description</key>
+			<string>留空使用内置版本。自定义时填写可执行文件的绝对路径，不要填写 ~ 或 shell 命令。</string>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+				<key>placeholder</key>
+				<string>留空使用内置 CodexBar CLI</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>
