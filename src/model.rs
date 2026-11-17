@@ -5,6 +5,13 @@ use serde_json::Value;
 pub struct Snapshot {
     pub windows: Vec<Window>,
     pub updated_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reset_credits: Option<ResetCredits>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResetCredits {
+    pub available: u64,
+    pub next_expires_at: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Window {
@@ -61,11 +68,21 @@ pub fn parse_usage(text: &str, provider: &str) -> Result<Snapshot, String> {
             resets_at: w["resetsAt"].as_str().map(str::to_owned),
         });
     }
-    if windows.is_empty() {
+    let reset_credits = (provider == "codex")
+        .then(|| row["resetCredits"]["available"].as_u64())
+        .flatten()
+        .map(|available| ResetCredits {
+            available,
+            next_expires_at: row["resetCredits"]["nextExpiresAt"]
+                .as_str()
+                .map(str::to_owned),
+        });
+    if windows.is_empty() && reset_credits.is_none() {
         return Err("此服务未返回套餐额度窗口".into());
     }
     Ok(Snapshot {
         windows,
+        reset_credits,
         updated_at: usage["updatedAt"].as_str().map(str::to_owned),
     })
 }

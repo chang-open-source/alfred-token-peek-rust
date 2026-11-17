@@ -107,6 +107,38 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                 let title = format!("{name} · {} · {quota}", w.label);
                 items.push(json!({"uid":format!("{p}-{i}"),"title":title,"subtitle":subtitle,"arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"仅刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")},"text":{"copy":format!("{title}\n{subtitle}")}}));
             }
+            if let Some(credits) = snapshot.reset_credits.as_ref().filter(|_| p == "codex") {
+                let expired = credits
+                    .next_expires_at
+                    .as_deref()
+                    .and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
+                    .is_some_and(|date| date <= Utc::now());
+                let title = format!(
+                    "Codex · {} {} 次",
+                    if stale || expired {
+                        "上次重置卡剩余"
+                    } else {
+                        "重置卡剩余"
+                    },
+                    credits.available
+                );
+                let subtitle = format!(
+                    "{}前获取{}{} · 回车查看用量页",
+                    duration_text(age),
+                    if expired {
+                        " · 有重置卡已到期，请刷新确认"
+                    } else if stale {
+                        " · 缓存已过期"
+                    } else {
+                        ""
+                    },
+                    if loading { " · 刷新中" } else { "" }
+                );
+                items.push(json!({"uid":"codex-reset-credits", "title":title,
+                    "subtitle":subtitle, "arg":"codex", "valid":true,
+                    "mods":{"cmd":{"arg":"refresh:codex","subtitle":"刷新重置卡次数","valid":!loading}},
+                    "icon":{"path":"icons/codex.png"}, "text":{"copy":format!("{title}\n{subtitle}")}}));
+            }
         } else {
             items.push(json!({"uid":format!("{p}-empty"),"title":format!("{name} · {}",if loading {"正在获取用量…"} else {"暂无用量"}),"subtitle":"回车打开服务用量页；使用下方刷新重试","arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"仅刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")}}));
         }

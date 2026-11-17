@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek
 | 选择「刷新用量」 | 刷新当前列表 |
 | ⌘ 回车 / ⌘C | 单独刷新某个服务 / 复制用量摘要 |
 
-各服务独立刷新，缓存有效期 5 分钟；查询失败保留上次成功数据，未知额度不按零计算。仅展示套餐百分比，不统计每日 Token 或费用。Alfred 界面目前为中文。
+各服务独立刷新，缓存有效期 5 分钟；查询失败保留上次成功数据，未知额度不按零计算。数据源返回时会显示 Codex 剩余重置卡次数。仅展示套餐百分比，不统计每日 Token 或费用。Alfred 界面目前为中文。
 
 在 **Alfred 偏好设置 → Workflows → Token Peek → Configure Workflow** 中调整设置和查看帮助。自动检测 Claude Code 或桌面版，也可手动隐藏 Claude；自定义 CLI 路径留空即使用内置版本。
 

@@ -125,3 +125,30 @@ fn reset_countdown_splits_days_hours_and_minutes() {
         assert!(token_peek::render::reset_text(Some(&reset.to_rfc3339())).starts_with(expected));
     }
 }
+
+#[test]
+fn reset_credit_row_marks_stale_or_expired_counts_as_previous_observations() {
+    for (age, expires, previous) in [
+        (0, "2099-01-01T00:00:00Z", false),
+        (400, "2099-01-01T00:00:00Z", true),
+        (0, "2020-01-01T00:00:00Z", true),
+    ] {
+        let mut cache = Cache::default();
+        let input = serde_json::json!({"provider":"codex","usage":{},"resetCredits":{"available":2,"nextExpiresAt":expires}});
+        cache.providers.insert(
+            "codex".into(),
+            Entry {
+                snapshot: Some(parse_usage(&input.to_string(), "codex").unwrap()),
+                fetched_at: now().saturating_sub(age),
+                ..Default::default()
+            },
+        );
+        let view = render(&cache, "codex", false);
+        let row = &view["items"][0];
+        assert_eq!(row["uid"], "codex-reset-credits");
+        let title = row["title"].as_str().unwrap();
+        assert!(title.contains("2 次"));
+        assert_eq!(title.contains("上次"), previous);
+        assert_eq!(row["arg"], "codex");
+    }
+}
