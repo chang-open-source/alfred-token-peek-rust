@@ -81,3 +81,34 @@ fn loading_and_refresh_actions_are_scoped_per_provider() {
         .iter()
         .any(|r| r["arg"] == "refresh:codex"));
 }
+
+#[test]
+fn formats_cache_age_in_readable_units() {
+    use token_peek::render::duration_text;
+    for (seconds, expected) in [
+        (0, "0 秒"),
+        (59, "59 秒"),
+        (60, "1 分钟"),
+        (90, "1 分钟 30 秒"),
+        (3_599, "59 分钟 59 秒"),
+        (3_600, "1 小时"),
+        (3_901, "1 小时 5 分钟"),
+        (86_400, "1 天"),
+        (90_061, "1 天 1 小时"),
+    ] {
+        assert_eq!(duration_text(seconds), expected);
+    }
+    let mut cache = Cache::default();
+    cache.providers.insert(
+        "codex".into(),
+        Entry {
+            snapshot: Some(parse_usage(include_str!("fixtures/usage.json"), "codex").unwrap()),
+            fetched_at: now().saturating_sub(3_900),
+            ..Default::default()
+        },
+    );
+    assert!(render(&cache, "codex", false)["items"][0]["subtitle"]
+        .as_str()
+        .unwrap()
+        .contains("1 小时 5 分钟前获取"));
+}

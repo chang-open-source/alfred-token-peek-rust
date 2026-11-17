@@ -2,6 +2,25 @@ use crate::runtime::{now, Cache, PROVIDERS, TTL};
 use chrono::{DateTime, Local, Utc};
 use serde_json::{json, Value};
 
+pub fn duration_text(seconds: u64) -> String {
+    for (unit, label, next_unit, next_label) in [
+        (86_400, "天", 3_600, "小时"),
+        (3_600, "小时", 60, "分钟"),
+        (60, "分钟", 1, "秒"),
+    ] {
+        if seconds >= unit {
+            let major = seconds / unit;
+            let minor = seconds % unit / next_unit;
+            return if minor == 0 {
+                format!("{major} {label}")
+            } else {
+                format!("{major} {label} {minor} {next_label}")
+            };
+        }
+    }
+    format!("{seconds} 秒")
+}
+
 pub fn reset_text(raw: Option<&str>) -> String {
     raw.and_then(|r| DateTime::parse_from_rfc3339(r).ok())
         .map(|date| {
@@ -71,9 +90,9 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                     .map(|used| format!("剩余 {:.0}% · 已用 {:.0}%", 100.0 - used, used))
                     .unwrap_or_else(|| "用量未知".into());
                 let subtitle = format!(
-                    "{} · {} 秒前获取{}{}{}",
+                    "{} · {}前获取{}{}{}",
                     reset_text(w.resets_at.as_deref()),
-                    age,
+                    duration_text(age),
                     if stale { " · 缓存已过期" } else { "" },
                     if loading { " · 刷新中" } else { "" },
                     source
