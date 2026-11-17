@@ -87,6 +87,19 @@ fn run() -> Result<(), String> {
         "filter" => {
             let query = args.get(1).map(String::as_str).unwrap_or("");
             let normalized = query.trim().to_lowercase();
+            if normalized == "update" {
+                println!(
+                    "{}",
+                    json!({"items": [{
+                        "uid": "update",
+                        "title": "更新 Token Peek",
+                        "subtitle": format!("当前 v{} · 回车检查并自动更新，保留已有设置", env!("CARGO_PKG_VERSION")),
+                        "arg": "update",
+                        "valid": true
+                    }]})
+                );
+                return Ok(());
+            }
             let selected: Vec<_> = providers
                 .iter()
                 .copied()

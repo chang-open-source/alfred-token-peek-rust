@@ -1,6 +1,7 @@
 #!/bin/zsh
 set -eu
 case "${1:-}" in
+  update) ./update.sh ;;
   codex) /usr/bin/open 'https://chatgpt.com/codex/settings/usage' ;;
   claude) /usr/bin/open 'https://claude.ai/settings/usage' ;;
   refresh:*)

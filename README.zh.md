@@ -22,6 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek
 
 | 操作 | 功能 |
 | --- | --- |
+| `usage update` | 检查并自动更新工作流 |
 | `usage` | 查看已启用的服务 |
 | `usage codex` / `usage claude` | 按服务筛选 |
 | 回车 | 打开服务用量页 |

@@ -155,3 +155,19 @@ fn filtered_queries_and_manual_refresh_only_start_requested_provider() {
     assert!(!root.join("cache/claude").exists());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn update_command_does_not_require_cli_or_usage_cache() {
+    let output = Command::new(env!("CARGO_BIN_EXE_token-peek"))
+        .args(["filter", " UPDATE "])
+        .env("CODEXBAR_BIN", "/missing/codexbar")
+        .env("alfred_workflow_cache", "/dev/null/cache")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["items"].as_array().unwrap().len(), 1);
+    assert_eq!(value["items"][0]["arg"], "update");
+    assert_eq!(value["items"][0]["valid"], true);
+    assert!(value.get("rerun").is_none());
+}

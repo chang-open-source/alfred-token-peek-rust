@@ -3,6 +3,20 @@ set -euo pipefail
 
 repo=chang-open-source/alfred-token-peek-rust
 asset=alfred-token-peek.alfredworkflow
+bundleid=com.chang.token-peek
+mode=${1:-install}
+[[ "$mode" == install || "$mode" == --update ]] || { echo 'Usage: install.sh [--update]' >&2; exit 1; }
+
+is_newer() {
+  local latest_parts current_parts index
+  IFS=. read -r -a latest_parts <<< "$1"
+  IFS=. read -r -a current_parts <<< "$2"
+  for index in 0 1 2; do
+    if (( 10#${latest_parts[index]} > 10#${current_parts[index]} )); then return 0; fi
+    if (( 10#${latest_parts[index]} < 10#${current_parts[index]} )); then return 1; fi
+  done
+  return 1
+}
 
 fail() { printf '%s\n' "$*" >&2; exit 1; }
 [[ "$(uname -s)" == Darwin ]] || fail 'Requires macOS 14+ and Alfred 5 Powerpack.'
@@ -20,7 +34,7 @@ fi
 workflows="$preferences/workflows"
 [[ -d "$workflows" ]] || fail 'Alfred preferences not found. Launch Alfred and activate Powerpack first.'
 
-tag=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" | plutil -extract tag_name raw -o - -)
+tag=$(curl -fsSL --connect-timeout 15 --max-time 30 "https://api.github.com/repos/$repo/releases/latest" | plutil -extract tag_name raw -o - -)
 [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'No stable release found.'
 temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/token-peek.XXXXXX")
 stage=
@@ -37,23 +51,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-printf 'Downloading Token Peek %s…\n' "$tag"
-base="https://github.com/$repo/releases/download/$tag"
-for file in "$asset" SHA256SUMS; do
-  curl -fL --retry 2 "$base/$file" -o "$temp_dir/$file"
-done
-expected=$(awk -v name="$asset" '$2 == name { print $1 }' "$temp_dir/SHA256SUMS")
-[[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]] || fail 'Invalid SHA256SUMS.'
-actual=$(shasum -a 256 "$temp_dir/$asset")
-[[ "${actual%% *}" == "$expected" ]] || fail 'Checksum mismatch; installation stopped.'
-
-ditto -x -k "$temp_dir/$asset" "$temp_dir/unpacked"
-package="$temp_dir/unpacked"
-bundleid=com.chang.token-peek
-[[ "$(plutil -extract bundleid raw -o - "$package/info.plist")" == "$bundleid" ]] || fail 'Unexpected workflow bundle ID.'
-[[ "$(plutil -extract version raw -o - "$package/info.plist")" == "${tag#v}" ]] || fail 'Unexpected workflow version.'
-[[ -x "$package/token-peek" && -x "$package/action.sh" ]] || fail 'Workflow executables are missing.'
-
 mkdir "$workflows/.token-peek-install.lock" 2>/dev/null || fail 'Another installation is running (.token-peek-install.lock).'
 lock="$workflows/.token-peek-install.lock"
 for directory in "$workflows"/*; do
@@ -64,7 +61,33 @@ for directory in "$workflows"/*; do
     destination="$directory"
   fi
 done
+if [[ "$mode" == --update ]]; then
+  [[ -n "$destination" ]] || fail 'Token Peek is not installed.'
+  current=$(plutil -extract version raw -o - "$destination/info.plist")
+  [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Invalid installed version.'
+  if ! is_newer "${tag#v}" "$current"; then
+    printf '当前版本 v%s，无需更新。\n' "$current"
+    exit 0
+  fi
+fi
 [[ -n "$destination" ]] || destination="$workflows/user.workflow.$(uuidgen)"
+
+printf 'Downloading Token Peek %s…\n' "$tag"
+base="https://github.com/$repo/releases/download/$tag"
+for file in "$asset" SHA256SUMS; do
+  curl -fL --connect-timeout 15 --max-time 600 --retry 2 "$base/$file" -o "$temp_dir/$file"
+done
+expected=$(awk -v name="$asset" '$2 == name { print $1 }' "$temp_dir/SHA256SUMS")
+[[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]] || fail 'Invalid SHA256SUMS.'
+actual=$(shasum -a 256 "$temp_dir/$asset")
+[[ "${actual%% *}" == "$expected" ]] || fail 'Checksum mismatch; installation stopped.'
+
+ditto -x -k "$temp_dir/$asset" "$temp_dir/unpacked"
+package="$temp_dir/unpacked"
+[[ "$(plutil -extract bundleid raw -o - "$package/info.plist")" == "$bundleid" ]] || fail 'Unexpected workflow bundle ID.'
+[[ "$(plutil -extract version raw -o - "$package/info.plist")" == "${tag#v}" ]] || fail 'Unexpected workflow version.'
+[[ -x "$package/token-peek" && -x "$package/action.sh" ]] || fail 'Workflow executables are missing.'
+
 stage=$(mktemp -d "$workflows/.token-peek.XXXXXX")
 ditto "$package" "$stage"
 if [[ -d "$destination" ]]; then
@@ -76,4 +99,8 @@ mv "$stage" "$destination"
 stage=
 [[ -z "$backup" ]] || rm -rf "$backup"
 backup=
-printf 'Installed Token Peek %s. Type usage in Alfred.\n' "$tag"
+if [[ "$mode" == --update ]]; then
+  printf '已更新至 %s，输入 usage 即可使用。\n' "$tag"
+else
+  printf 'Installed Token Peek %s. Type usage in Alfred.\n' "$tag"
+fi

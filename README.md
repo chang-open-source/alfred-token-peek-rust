@@ -22,6 +22,7 @@ Sign in to the relevant service and configure a supported [CodexBar data source]
 
 | Action | Result |
 | --- | --- |
+| `usage update` | Check and install workflow updates |
 | `usage` | Show enabled services |
 | `usage codex` / `usage claude` | Filter by service |
 | Return | Open the service's usage page |

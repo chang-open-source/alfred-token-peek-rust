@@ -42,6 +42,7 @@ def main():
     shutil.copytree(ROOT/'vendor/runtime',stage/'vendor',symlinks=True)
     for path in (ROOT/'workflow').iterdir():
         if path.is_file(): shutil.copy2(path, stage/path.name)
+    shutil.copy2(ROOT/'scripts/install.sh', stage/'install.sh')
     for name in ['README.md','README.zh.md','LICENSE','CHANGELOG.md']:
         shutil.copy2(ROOT/name,stage/name)
     shutil.copy2(ROOT/'vendor/manifest.json',stage/'vendor/manifest.json')

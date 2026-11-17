@@ -36,7 +36,9 @@ with zipfile.ZipFile(archive) as z:
             assert f'vendor/{arch}/{name}' in z.namelist()
         assert z.getinfo(f'vendor/{arch}/CodexBarCLI').external_attr >> 16 & 0o111
     assert z.getinfo('token-peek').external_attr >> 16 & 0o111
-    assert z.getinfo('action.sh').external_attr >> 16 & 0o111
+    for name, source in [('action.sh', 'workflow/action.sh'), ('update.sh', 'workflow/update.sh'), ('install.sh', 'scripts/install.sh')]:
+        assert z.getinfo(name).external_attr >> 16 & 0o111
+        assert z.read(name)==(ROOT/source).read_bytes()
 with tempfile.TemporaryDirectory(prefix='Token Peek package ') as folder:
     root=Path(folder)
     subprocess.run(['unzip','-q',str(archive),'-d',str(root)],check=True)
@@ -60,6 +62,8 @@ with tempfile.TemporaryDirectory(prefix='Token Peek package ') as folder:
         v=json.loads(subprocess.check_output([str(root/'token-peek'),'filter',q],cwd=root,env=env,text=True))
         env.update(v.get('variables',{}))
         return v
+    update=query('update')
+    assert update['items'][0]['arg']=='update' and 'rerun' not in update
     first=query()
     assert first['rerun']==1
     for _ in range(60):
