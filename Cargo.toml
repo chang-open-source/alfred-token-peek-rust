@@ -1,6 +1,6 @@
 [package]
 name = "token-peek"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "Alfred usage workflow powered by bundled CodexBar CLI"
