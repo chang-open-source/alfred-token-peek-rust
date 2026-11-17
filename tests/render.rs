@@ -107,7 +107,7 @@ fn formats_cache_age_in_readable_units() {
             ..Default::default()
         },
     );
-    assert!(render(&cache, "codex", false)["items"][0]["subtitle"]
+    assert!(render(&cache, "codex", false)["items"][0]["text"]["copy"]
         .as_str()
         .unwrap()
         .contains("1 小时 5 分钟前获取"));
@@ -211,8 +211,37 @@ fn forecast_is_hidden_for_stale_source_or_failed_refresh() {
             render(&cache, "codex", false)["items"][0]["subtitle"]
                 .as_str()
                 .unwrap()
-                .contains("按周期均速"),
+                .contains("（均速）"),
             expected
         );
     }
+}
+
+#[test]
+fn compact_rows_keep_detailed_information_in_copy_text() {
+    let time = chrono::Utc::now();
+    let input = serde_json::json!({"provider":"codex", "rateWindowLabels":{"primary":"Weekly"},
+        "usage":{"updatedAt":time.to_rfc3339(),"primary":{"usedPercent":25,"windowMinutes":10080,
+            "resetsAt":(time + chrono::Duration::days(3)).to_rfc3339()}}});
+    let mut cache = Cache::default();
+    cache.providers.insert(
+        "codex".into(),
+        Entry {
+            snapshot: Some(parse_usage(&input.to_string(), "codex").unwrap()),
+            fetched_at: now(),
+            ..Default::default()
+        },
+    );
+    let view = render(&cache, "codex", false);
+    let row = &view["items"][0];
+    assert_eq!(row["title"], "Codex · 每周 · 剩余 75%");
+    let subtitle = row["subtitle"].as_str().unwrap();
+    assert!(subtitle.starts_with("预计够用（均速）"));
+    assert!(subtitle.contains("后重置"));
+    assert!(!subtitle.contains("来源"));
+    assert!(!subtitle.contains("已用"));
+    let copy = row["text"]["copy"].as_str().unwrap();
+    assert!(copy.contains("已用 25%"));
+    assert!(copy.contains("来源"));
+    assert!(copy.contains("前获取"));
 }

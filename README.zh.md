@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek
 | `usage codex` / `usage claude` | 按服务筛选 |
 | 回车 | 打开服务用量页 |
 | 选择「刷新用量」 | 刷新当前列表 |
-| ⌘ 回车 / ⌘C | 单独刷新某个服务 / 复制用量摘要 |
+| ⌘ 回车 / ⌘C | 单独刷新某个服务 / 复制完整详情 |
 
 周期信息完整时，按本周期平均用量提示额度是否预计够用至重置，仅供参考。
 

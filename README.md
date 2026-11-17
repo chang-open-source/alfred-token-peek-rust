@@ -27,7 +27,7 @@ Sign in to the relevant service and configure a supported [CodexBar data source]
 | `usage codex` / `usage claude` | Filter by service |
 | Return | Open the service's usage page |
 | Select “刷新用量” (Refresh usage) | Refresh the current list |
-| ⌘ Return / ⌘C | Refresh one service / copy its usage summary |
+| ⌘ Return / ⌘C | Refresh one service / copy full details |
 
 When cycle data is available, a hint estimates whether quota will last until reset at the current cycle-average rate. This is an estimate, not a guarantee.
 

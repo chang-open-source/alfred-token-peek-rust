@@ -75,6 +75,19 @@ pub fn reset_text(raw: Option<&str>) -> String {
         })
         .unwrap_or_else(|| "重置时间未知".into())
 }
+fn compact_time(text: &str) -> String {
+    text.replace(' ', "")
+}
+
+fn window_label(label: &str) -> &str {
+    match label.to_ascii_lowercase().as_str() {
+        "weekly" => "每周",
+        "monthly" => "每月",
+        "session" => "本轮",
+        _ => label,
+    }
+}
+
 pub fn render(cache: &Cache, query: &str, loading: bool) -> Value {
     render_selected(cache, query, loading, &PROVIDERS)
 }
@@ -123,7 +136,7 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
             for (i, w) in snapshot.windows.iter().enumerate() {
                 let quota = w
                     .used
-                    .map(|used| format!("剩余 {:.0}% · 已用 {:.0}%", 100.0 - used, used))
+                    .map(|used| format!("剩余 {:.0}%", 100.0 - used))
                     .unwrap_or_else(|| "用量未知".into());
                 let observed_at = match snapshot.updated_at.as_deref() {
                     Some(raw) => DateTime::parse_from_rfc3339(raw)
@@ -135,20 +148,58 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                     None
                 } else {
                     observed_at.and_then(|at| forecast_text(w, at, Utc::now().timestamp()))
+                };
+                let reset = reset_text(w.resets_at.as_deref());
+                let source_stale = measurement.is_some_and(|date| {
+                    Utc::now().signed_duration_since(date).num_seconds() >= TTL as i64
+                });
+                let mut parts = Vec::new();
+                if source_stale {
+                    parts.push("来源数据已过期".into());
+                } else if stale {
+                    parts.push("缓存已过期".into());
                 }
-                .map(|text| format!("{text} · "))
-                .unwrap_or_default();
-                let subtitle = format!(
-                    "{}{} · {}前获取{}{}{}",
-                    forecast,
-                    reset_text(w.resets_at.as_deref()),
+                if loading {
+                    parts.push("刷新中".into());
+                }
+                if let Some(text) = &forecast {
+                    let hint = text
+                        .strip_prefix("按周期均速：")
+                        .map(|text| {
+                            format!(
+                                "{}（均速）",
+                                compact_time(text).replace("预计够用至重置", "预计够用")
+                            )
+                        })
+                        .unwrap_or_else(|| text.clone());
+                    parts.push(hint);
+                }
+                parts.push(compact_time(reset.split(" · ").next().unwrap_or(&reset)));
+                if !stale && !source_stale && !loading {
+                    parts.push(if age < 60 {
+                        "刚更新".into()
+                    } else {
+                        format!("{}分钟前更新", age / 60)
+                    });
+                }
+                let subtitle = parts.join(" · ");
+                let title = format!("{name} · {} · {quota}", window_label(&w.label));
+                let used = w
+                    .used
+                    .map(|value| format!(" · 已用 {value:.0}%"))
+                    .unwrap_or_default();
+                let details = format!(
+                    "{title}{used}\n{}{} · {}前获取{}{}{}",
+                    forecast
+                        .map(|text| format!("{text} · "))
+                        .unwrap_or_default(),
+                    reset,
                     duration_text(age),
                     if stale { " · 缓存已过期" } else { "" },
                     if loading { " · 刷新中" } else { "" },
                     source
                 );
-                let title = format!("{name} · {} · {quota}", w.label);
-                items.push(json!({"uid":format!("{p}-{i}"),"title":title,"subtitle":subtitle,"arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"仅刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")},"text":{"copy":format!("{title}\n{subtitle}")}}));
+                items.push(json!({"uid":format!("{p}-{i}"),"title":title,"subtitle":subtitle,"arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")},"text":{"copy":details}}));
             }
             if let Some(credits) = snapshot.reset_credits.as_ref().filter(|_| p == "codex") {
                 let expired = credits
@@ -165,18 +216,15 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                     },
                     credits.available
                 );
-                let subtitle = format!(
-                    "{}前获取{}{} · 回车查看用量页",
-                    duration_text(age),
-                    if expired {
-                        " · 有重置卡已到期，请刷新确认"
-                    } else if stale {
-                        " · 缓存已过期"
-                    } else {
-                        ""
-                    },
-                    if loading { " · 刷新中" } else { "" }
-                );
+                let subtitle = if expired {
+                    "有卡片已到期 · 刷新确认剩余次数".to_string()
+                } else if stale {
+                    "缓存已过期 · ⌘回车刷新".to_string()
+                } else if loading {
+                    "刷新中 · 回车查看用量页".to_string()
+                } else {
+                    "回车查看用量页 · ⌘回车刷新".to_string()
+                };
                 items.push(json!({"uid":"codex-reset-credits", "title":title,
                     "subtitle":subtitle, "arg":"codex", "valid":true,
                     "mods":{"cmd":{"arg":"refresh:codex","subtitle":"刷新重置卡次数","valid":!loading}},
@@ -194,7 +242,7 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
     }
     let loading = shown.iter().any(|p| refreshing.contains(p));
     let can_refresh = shown.iter().any(|p| !refreshing.contains(p));
-    items.push(json!({"uid":"refresh","title":if !can_refresh && loading {"正在刷新…"} else {"刷新用量"},"subtitle":"独立刷新当前服务；⌘回车可单独刷新某一项","arg":format!("refresh:{}",shown.join(",")),"valid":can_refresh}));
+    items.push(json!({"uid":"refresh","title":if !can_refresh && loading {"正在刷新…"} else {"刷新用量"},"subtitle":"更新当前列表 · ⌘回车刷新单项 · ⌘C 复制详情","arg":format!("refresh:{}",shown.join(",")),"valid":can_refresh}));
     let mut output = json!({"items":items,"skipknowledge":true});
     if loading {
         output["rerun"] = json!(1);
