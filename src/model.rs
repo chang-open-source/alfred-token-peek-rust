@@ -18,6 +18,8 @@ pub struct Window {
     pub label: String,
     pub used: Option<f64>,
     pub resets_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_minutes: Option<u64>,
 }
 
 pub fn parse_usage(text: &str, provider: &str) -> Result<Snapshot, String> {
@@ -66,6 +68,7 @@ pub fn parse_usage(text: &str, provider: &str) -> Result<Snapshot, String> {
                 .as_f64()
                 .filter(|n| n.is_finite() && (0.0..=100.0).contains(n)),
             resets_at: w["resetsAt"].as_str().map(str::to_owned),
+            window_minutes: w["windowMinutes"].as_u64().filter(|m| *m > 0),
         });
     }
     let reset_credits = (provider == "codex")

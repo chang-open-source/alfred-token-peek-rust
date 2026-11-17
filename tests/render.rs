@@ -152,3 +152,67 @@ fn reset_credit_row_marks_stale_or_expired_counts_as_previous_observations() {
         assert_eq!(row["arg"], "codex");
     }
 }
+
+#[test]
+fn quota_forecast_uses_observation_time_and_rejects_insufficient_data() {
+    use token_peek::{model::Window, render::forecast_text};
+    let now = 1_800_000_000;
+    let mut window = Window {
+        label: "5 小时".into(),
+        used: Some(25.0),
+        window_minutes: Some(300),
+        resets_at: Some(
+            chrono::DateTime::from_timestamp(now + 9000, 0)
+                .unwrap()
+                .to_rfc3339(),
+        ),
+    };
+    assert!(forecast_text(&window, now, now)
+        .unwrap()
+        .contains("预计够用"));
+    window.used = Some(75.0);
+    let forecast = forecast_text(&window, now, now).unwrap();
+    assert!(forecast.contains("提前 1 小时 40 分钟耗尽"));
+    assert_eq!(forecast_text(&window, now, now + 299).unwrap(), forecast);
+    assert!(forecast_text(&window, now, now + 300).is_none());
+    assert!(forecast_text(&window, now + 1, now).is_none());
+    assert!(forecast_text(&window, now - 8800, now - 8800).is_none());
+    for used in [None, Some(0.0)] {
+        window.used = used;
+        assert!(forecast_text(&window, now, now).is_none());
+    }
+    window.used = Some(100.0);
+    assert!(forecast_text(&window, now, now).unwrap().contains("已用尽"));
+    window.window_minutes = None;
+    assert!(forecast_text(&window, now, now).is_none());
+}
+
+#[test]
+fn forecast_is_hidden_for_stale_source_or_failed_refresh() {
+    for (source_age, failed, expected) in [(0, false, true), (400, false, false), (0, true, false)]
+    {
+        let time = chrono::Utc::now();
+        let input = serde_json::json!({"provider":"codex","usage": {
+            "updatedAt": (time - chrono::Duration::seconds(source_age)).to_rfc3339(),
+            "primary":{"usedPercent":25,"windowMinutes":300,
+                "resetsAt":(time + chrono::Duration::seconds(9000)).to_rfc3339()}
+        }});
+        let mut cache = Cache::default();
+        cache.providers.insert(
+            "codex".into(),
+            Entry {
+                snapshot: Some(parse_usage(&input.to_string(), "codex").unwrap()),
+                fetched_at: now(),
+                error: failed.then(|| "网络错误".into()),
+                ..Default::default()
+            },
+        );
+        assert_eq!(
+            render(&cache, "codex", false)["items"][0]["subtitle"]
+                .as_str()
+                .unwrap()
+                .contains("按周期均速"),
+            expected
+        );
+    }
+}

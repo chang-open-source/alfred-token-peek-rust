@@ -29,6 +29,8 @@ Sign in to the relevant service and configure a supported [CodexBar data source]
 | Select “刷新用量” (Refresh usage) | Refresh the current list |
 | ⌘ Return / ⌘C | Refresh one service / copy its usage summary |
 
+When cycle data is available, a hint estimates whether quota will last until reset at the current cycle-average rate. This is an estimate, not a guarantee.
+
 Each service refreshes independently. Results are cached for 5 minutes; failed requests retain the last successful data. Unknown usage is never treated as zero. Codex reset credits appear when reported by the data source. This workflow shows plan percentages, not daily token counts or costs. The Alfred interface is currently in Chinese.
 
 Open **Alfred Preferences → Workflows → Token Peek → Configure Workflow** for settings and help. Claude is detected through Claude Code or the desktop app; it can also be hidden manually. Leave the custom CLI path empty to use the bundled version.

@@ -21,6 +21,35 @@ pub fn duration_text(seconds: u64) -> String {
     format!("{seconds} 秒")
 }
 
+pub fn forecast_text(window: &crate::model::Window, observed_at: i64, now: i64) -> Option<String> {
+    // Use the observation time, not the render time: cached usage must not improve its own pace.
+    if !(0..TTL as i64).contains(&now.checked_sub(observed_at)?) {
+        return None;
+    }
+    let used = window
+        .used
+        .filter(|v| v.is_finite() && *v > 0.0 && *v <= 100.0)?;
+    let duration = i64::try_from(window.window_minutes?.checked_mul(60)?).ok()?;
+    let reset = DateTime::parse_from_rfc3339(window.resets_at.as_deref()?)
+        .ok()?
+        .timestamp();
+    let start = reset.checked_sub(duration)?;
+    let elapsed = observed_at.checked_sub(start)?;
+    if reset <= now || elapsed < 600 || elapsed >= duration {
+        return None;
+    }
+    if used == 100.0 {
+        return Some("额度已用尽，等待重置".into());
+    }
+    let projected = used * duration as f64 / elapsed as f64;
+    if projected <= 100.0 {
+        Some("按周期均速：预计够用至重置".into())
+    } else {
+        let early = (duration as f64 - elapsed as f64 * 100.0 / used).ceil() as u64;
+        Some(format!("按周期均速：预计提前 {}耗尽", duration_text(early)))
+    }
+}
+
 pub fn reset_text(raw: Option<&str>) -> String {
     raw.and_then(|r| DateTime::parse_from_rfc3339(r).ok())
         .map(|date| {
@@ -96,8 +125,22 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                     .used
                     .map(|used| format!("剩余 {:.0}% · 已用 {:.0}%", 100.0 - used, used))
                     .unwrap_or_else(|| "用量未知".into());
+                let observed_at = match snapshot.updated_at.as_deref() {
+                    Some(raw) => DateTime::parse_from_rfc3339(raw)
+                        .ok()
+                        .map(|date| date.timestamp()),
+                    None => i64::try_from(e.fetched_at).ok(),
+                };
+                let forecast = if stale {
+                    None
+                } else {
+                    observed_at.and_then(|at| forecast_text(w, at, Utc::now().timestamp()))
+                }
+                .map(|text| format!("{text} · "))
+                .unwrap_or_default();
                 let subtitle = format!(
-                    "{} · {}前获取{}{}{}",
+                    "{}{} · {}前获取{}{}{}",
+                    forecast,
                     reset_text(w.resets_at.as_deref()),
                     duration_text(age),
                     if stale { " · 缓存已过期" } else { "" },
