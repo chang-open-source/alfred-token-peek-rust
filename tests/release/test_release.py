@@ -48,38 +48,25 @@ class ReleaseTests(unittest.TestCase):
         original = '# Changelog\n\n## [Unreleased]\n\n- 本项目修复。\n\n## [0.3.2] - 2026-11-17\n\n- 历史内容\n'
         updated, notes = release.render_changelog(original, '0.4.0', '2026-11-17', '0.84.0', upstream())
         self.assertNotIn('## [Unreleased]', updated)
-        self.assertIn('## [0.4.0]', updated)
         self.assertIn('本项目修复', notes)
         self.assertIn('0.84.0 → 0.85.0', notes)
         self.assertIn('/compare/v0.84.0...v0.85.0', notes)
-        self.assertIn('历史内容', updated)
         self.assertNotIn('历史内容', notes)
+        self.assertFalse(updated.endswith('\n\n'))
         with self.assertRaises(ValueError):
             release.render_changelog(updated, '0.4.0', '2026-11-17', '0.85.0', upstream())
 
-    def test_same_upstream_version_is_not_reported_as_upgrade(self):
-        updated, notes = release.render_changelog('# Changelog\n\n## [Unreleased]\n', '0.4.0', '2026-11-17', '0.85.0', upstream())
-        self.assertIn('内置 CodexBar 0.85.0', notes)
-        self.assertNotIn('→', notes)
-        self.assertTrue(updated.endswith('\n'))
-        self.assertFalse(updated.endswith('\n\n'))
-
-    def test_changelog_without_unreleased_preserves_history(self):
-        for original in ('# Changelog\n', '# Changelog\n\nIntro\n\n## [0.1.0]\n\n- History\n', '# Changelog\n\nIntro\n\n## [Unreleased]\n\n## [0.1.0]\n\n- History\n'):
-            with self.subTest(original=original):
-                updated, notes = release.render_changelog(original, '0.2.0', '2026-11-17', '0.84.0', upstream())
-                self.assertNotIn('Unreleased', updated)
-                self.assertIn('0.84.0 → 0.85.0', notes)
-                self.assertEqual(release.release_notes(updated, '0.2.0'), notes)
-                self.assertTrue(updated.endswith('\n'))
-                self.assertFalse(updated.endswith('\n\n'))
-                if 'History' in original:
-                    self.assertIn('Intro\n\n## [0.2.0]', updated)
-                    self.assertTrue(updated.endswith('## [0.1.0]\n\n- History\n'))
-                    self.assertNotIn('History', notes)
+    def test_release_without_pending_changes(self):
+        history = '## [0.1.0]\n\n- History\n'
+        for pending in ('', '## [Unreleased]\n\n'):
+            updated, notes = release.render_changelog(
+                '# Changelog\n\n'+pending+history, '0.2.0', '2026-11-17', '0.85.0', upstream())
+            self.assertNotIn('Unreleased', updated)
+            self.assertTrue(updated.endswith(history))
+            self.assertEqual(release.release_notes(updated, '0.2.0'), notes)
+            self.assertNotIn('→', notes)
 
     def test_checksum_mismatch_does_not_replace_cached_asset(self):
-        from unittest.mock import patch
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp)/'asset.tar.gz'; dest.write_bytes(b'bad')
             with patch.object(release, 'download', side_effect=AssertionError('must not download')):

@@ -101,7 +101,7 @@ def render_changelog(changelog, version, date, old, upstream):
     manifest = manifest_from_release(upstream)
     new = manifest['version']
     notes = match[1].strip() if match else ''
-    dependency = f'- 内置 CodexBar {new}（锁定官方双架构 CLI）。[上游发布说明]({manifest["release"]})。'
+    dependency = f'- 内置 CodexBar {new}。[上游发布说明]({manifest["release"]})。'
     if old != new:
         dependency = (f'- CodexBar {old} → {new}。[上游发布说明]({manifest["release"]})；'
                       f'[完整更新比较](https://github.com/{UPSTREAM}/compare/v{old}...v{new})。')
