@@ -5,7 +5,7 @@ use std::{
     process::{Command, Stdio},
     time::Duration,
 };
-use token_peek::{discovery::available_providers, render::render_status, runtime};
+use token_peek::{discovery::available_providers, render::render_status_with_details, runtime};
 fn cache_dir() -> PathBuf {
     env::var_os("alfred_workflow_cache")
         .filter(|s| !s.is_empty())
@@ -86,6 +86,11 @@ fn run() -> Result<(), String> {
         }
         "filter" => {
             let query = args.get(1).map(String::as_str).unwrap_or("");
+            let native_details = env::var("alfred_version")
+                .ok()
+                .and_then(|version| version.split('.').next()?.parse::<u32>().ok())
+                .is_some_and(|major| major >= 6)
+                && env::var("token_peek_alfred_major").as_deref() != Ok("5");
             let normalized = query.trim().to_lowercase();
             if normalized == "update" {
                 println!(
@@ -95,6 +100,7 @@ fn run() -> Result<(), String> {
                         "title": "更新 Token Peek",
                         "subtitle": format!("当前 v{} · 回车检查并自动更新，保留已有设置", env!("CARGO_PKG_VERSION")),
                         "arg": "update",
+                        "mods": {"alt": {"valid": false}},
                         "valid": true
                     }]})
                 );
@@ -144,10 +150,18 @@ fn run() -> Result<(), String> {
                     failures.push(p);
                 }
             }
-            let mut output = render_status(&cache, query, &refreshing, &providers);
+            let mut output =
+                render_status_with_details(&cache, query, &refreshing, &providers, native_details);
             output["variables"] = variables.into();
             for p in failures {
                 output["items"].as_array_mut().unwrap().insert(0,json!({"title":format!("{p} · 后台刷新未能保存结果"),"subtitle":"请检查缓存目录权限和磁盘空间，关闭 Alfred 后重试或手动刷新","valid":false}));
+            }
+            if native_details {
+                for item in output["items"].as_array_mut().unwrap() {
+                    if item["mods"]["alt"].is_null() {
+                        item["mods"]["alt"] = json!({"valid": false});
+                    }
+                }
             }
             println!("{output}");
         }

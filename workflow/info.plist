@@ -6,6 +6,19 @@
 	<string>com.chang.token-peek</string>
 	<key>connections</key>
 	<dict>
+		<key>token-peek-details</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>token-peek-action</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 		<key>token-peek-filter</key>
 		<array>
 			<dict>
@@ -13,6 +26,16 @@
 				<string>token-peek-action</string>
 				<key>modifiers</key>
 				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>token-peek-details</string>
+				<key>modifiers</key>
+				<integer>524288</integer>
 				<key>modifiersubtext</key>
 				<string></string>
 				<key>vitoclose</key>
@@ -102,6 +125,23 @@
 			<key>version</key>
 			<integer>2</integer>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>launchmode</key>
+				<integer>0</integer>
+				<key>path</key>
+				<string>Quota.alfredui</string>
+				<key>stackview</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.userinterface.alfredui</string>
+			<key>uid</key>
+			<string>token-peek-details</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
 	</array>
 	<key>readme</key>
 	<string># Token Peek · 设置与帮助
@@ -111,6 +151,7 @@
 ## 使用
 - 输入 `usage update`，回车检查并自动更新工作流。
 - 输入 `usage` 查看全部；`usage codex` / `usage claude` 筛选。
+- Alfred 6：选中额度行，按 ⌥ 回车查看额度详情。面板可复制摘要、刷新当前服务或打开用量页，Esc 返回列表。
 - 回车打开对应服务的用量页；⌘C 复制当前行摘要。
 - 选择「刷新用量」立即返回列表，各服务独立更新；⌘ 回车可仅刷新选中服务。
 
@@ -130,10 +171,17 @@
 - 出错时检查网络、登录状态及数据源；权限问题参阅 [钥匙串与权限说明](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/keychain-prompts.md)。
 - 更换账号后请手动刷新，旧缓存不会自动确认账号身份。
 
-需要 macOS 14+、Alfred 5 Powerpack。当前展示套餐额度，不估算每日 Token 或费用。
+需要 macOS 14+ 及 Alfred 5 或 6 的 Powerpack。当前展示套餐额度，不估算每日 Token 或费用。
 </string>
 	<key>uidata</key>
 	<dict>
+		<key>token-peek-details</key>
+		<dict>
+			<key>xpos</key>
+			<integer>420</integer>
+			<key>ypos</key>
+			<integer>240</integer>
+		</dict>
 		<key>token-peek-action</key>
 		<dict>
 			<key>xpos</key>
@@ -151,6 +199,8 @@
 	</dict>
 	<key>variables</key>
 	<dict>
+		<key>token_peek_alfred_major</key>
+		<string>6</string>
 		<key>CLAUDE_ENABLED</key>
 		<string>auto</string>
 		<key>CODEXBAR_BIN</key>

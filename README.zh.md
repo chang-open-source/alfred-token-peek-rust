@@ -2,11 +2,11 @@
 
 [English](README.md) · 简体中文
 
-在 Alfred 中查看 **Codex、Claude 套餐额度与重置时间**。使用 Rust 编写，内置官方 **CodexBar CLI 0.84.0**，一个安装包支持 Apple Silicon 和 Intel，无需另装 Rust、Python 或 CodexBar。
+在 Alfred 中查看 **Codex、Claude 套餐额度与重置时间**。使用 Rust 编写，内置官方 **CodexBar CLI 0.84.0**，两种 Alfred 安装包均支持 Apple Silicon 和 Intel，无需另装 Rust、Python 或 CodexBar。
 
 ## 安装
 
-需要 **macOS 14+、Alfred 5 Powerpack**。
+需要 **macOS 14+ 及 Alfred 5 或 6 的 Powerpack**。
 
 一键安装：
 
@@ -14,7 +14,9 @@
 curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek-rust/main/scripts/install.sh | bash
 ```
 
-自动下载并校验最新版本，直接安装到 Alfred，保留已有工作流设置，无需确认导入。也可从 [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) 下载 `.alfredworkflow` 后双击导入。
+脚本优先识别正在运行的 Alfred，下载并校验对应的安装包，保留已有设置。若同时安装了 5 和 6 且都未运行，可先打开目标版本，或把上面命令末尾的 `bash` 换成 `bash -s -- --alfred-major 6`（或 `5`）。切换 Alfred 主版本后运行 `usage update`，同一工作流版本也会切换安装包。
+
+手动安装时，从 [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) 下载文件名以 `-alfred5.alfredworkflow`（列表版）或 `-alfred6.alfredworkflow`（原生详情版）结尾的包，双击导入。历史 Release 只有一个通用包。旧版更新器首次升级会安装列表版，Alfred 6 用户再运行一次 `usage update` 即可切换为详情版。
 
 请先登录对应服务，并配置可用的 [CodexBar 数据源](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/configuration.md)。检测到已安装应用不代表已登录。
 
@@ -25,6 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek
 | `usage update` | 检查并自动更新工作流 |
 | `usage` | 查看已启用的服务 |
 | `usage codex` / `usage claude` | 按服务筛选 |
+| 在额度行按 ⌥ 回车（Alfred 6） | 查看剩余额度、重置时间和缓存状态。可复制摘要、刷新该服务或打开用量页，Esc 返回列表 |
 | 回车 | 打开服务用量页 |
 | 选择「刷新用量」 | 刷新当前列表 |
 | ⌘ 回车 / ⌘C | 单独刷新某个服务 / 复制完整详情 |

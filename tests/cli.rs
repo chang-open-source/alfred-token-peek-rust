@@ -171,3 +171,66 @@ fn update_command_does_not_require_cli_or_usage_cache() {
     assert_eq!(value["items"][0]["valid"], true);
     assert!(value.get("rerun").is_none());
 }
+
+#[test]
+fn alfred_6_offers_native_details_only_for_quota_windows() {
+    use serde_json::json;
+    let root = std::env::temp_dir().join(format!("token-peek-details-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    let timestamp = token_peek::runtime::now();
+    let cache = json!({"providers":{"codex":{
+        "fetched_at":timestamp - 400, "attempted_at":timestamp,
+        "snapshot":{"windows":[
+            {"label":"Session", "used":28}, {"label":"Weekly", "used":100},
+            {"label":"Other", "used":null}
+        ]}
+    }}});
+    fs::write(root.join("usage.json"), cache.to_string()).unwrap();
+    for (version, target) in [("6.0.3", "6"), ("6.0.3", "5"), ("5.8.2", "5"), ("", "6")] {
+        let output = Command::new(env!("CARGO_BIN_EXE_token-peek"))
+            .args(["filter", "codex"])
+            .env("alfred_version", version)
+            .env("token_peek_alfred_major", target)
+            .env("alfred_workflow_cache", &root)
+            .env("CODEXBAR_BIN", "/usr/bin/true")
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        let view: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        let rows = view["items"].as_array().unwrap();
+        assert_eq!(rows[0]["arg"], "codex");
+        assert_eq!(rows[0]["mods"]["cmd"]["arg"], "refresh:codex");
+        if version == "6.0.3" && target == "6" {
+            let details = &rows[0]["mods"]["alt"];
+            assert_eq!(details["valid"], true);
+            assert_eq!(
+                details["variables"]["quota_summary"],
+                rows[0]["text"]["copy"]
+            );
+            assert!(rows[0]["subtitle"].as_str().unwrap().contains("⌥↩"));
+            assert_eq!(details["variables"]["quota_value"], "剩余 72%");
+            assert_eq!(details["variables"]["quota_fraction"], "0.72");
+            assert!(details["variables"]["quota_status"]
+                .as_str()
+                .unwrap()
+                .contains("缓存已过期"));
+            assert_eq!(
+                rows[1]["mods"]["alt"]["variables"]["quota_hide_bar"],
+                "false"
+            );
+            assert_eq!(rows[1]["mods"]["alt"]["variables"]["quota_fraction"], "0");
+            assert_eq!(
+                rows[2]["mods"]["alt"]["variables"]["quota_hide_bar"],
+                "true"
+            );
+            assert_eq!(
+                rows[2]["mods"]["alt"]["variables"]["quota_value"],
+                "用量未知"
+            );
+            assert_eq!(rows.last().unwrap()["mods"]["alt"]["valid"], false);
+        } else {
+            assert!(rows[0]["mods"].get("alt").is_none());
+        }
+    }
+    fs::remove_dir_all(root).unwrap();
+}

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Build one importable macOS workflow for Apple Silicon and Intel."""
+"""Build Alfred 5 and 6 workflows for Apple Silicon and Intel."""
 import hashlib
 import os
 from pathlib import Path
+import plistlib
 import shutil
 import struct
 import subprocess
@@ -72,11 +73,35 @@ def main():
         dest.mkdir()
         for path in licenses: shutil.copy2(path,dest/path.name)
         if not licenses: raise SystemExit(f'Missing license files for {label}')
-    output=dist/'alfred-token-peek.alfredworkflow'
-    output.unlink(missing_ok=True)
-    subprocess.run(['zip','-qry',str(output),'.'],cwd=stage,check=True)
-    digest=hashlib.sha256(output.read_bytes()).hexdigest()
-    (dist/'SHA256SUMS').write_text(f'{digest}  {output.name}\n')
-    print(f'Packaged {output} ({output.stat().st_size/1024/1024:.1f} MiB)\nSHA256 {digest}')
+    plist_path = stage/'info.plist'
+    original = plist_path.read_bytes()
+    list_only = plistlib.loads(original)
+    details = 'token-peek-details'
+    list_only['objects'] = [obj for obj in list_only['objects'] if obj['uid'] != details]
+    del list_only['connections'][details]
+    del list_only['uidata'][details]
+    links = list_only['connections']['token-peek-filter']
+    list_only['connections']['token-peek-filter'] = [link for link in links if link['destinationuid'] != details]
+    list_only['variables']['token_peek_alfred_major'] = '5'
+    list_only['readme'] = '\n'.join(line for line in list_only['readme'].split('\n') if not line.startswith('- Alfred 6：'))
+    plist_path.write_bytes(plistlib.dumps(list_only, sort_keys=False))
+
+    checksums = []
+    for major in (5, 6):
+        if major == 6:
+            plist_path.write_bytes(original)
+            shutil.copytree(ROOT/'workflow/Quota.alfredui', stage/'Quota.alfredui')
+        output = dist/f'alfred-token-peek-alfred{major}.alfredworkflow'
+        output.unlink(missing_ok=True)
+        subprocess.run(['zip', '-qry', str(output), '.'], cwd=stage, check=True)
+        digest = hashlib.sha256(output.read_bytes()).hexdigest()
+        checksums.append(f'{digest}  {output.name}')
+        if major == 5:
+            # Published installers through v0.2.1 request this exact filename.
+            legacy = dist/'alfred-token-peek.alfredworkflow'
+            shutil.copyfile(output, legacy)
+            checksums.append(f'{digest}  {legacy.name}')
+        print(f'Packaged {output.name} ({output.stat().st_size/1024/1024:.1f} MiB)')
+    (dist/'SHA256SUMS').write_text('\n'.join(checksums) + '\n')
 
 if __name__ == '__main__': main()

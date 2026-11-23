@@ -1,0 +1,83 @@
+{
+  "variablesconfig": {
+    "quota_provider": { "src": "args[0]" },
+    "quota_summary": { "src": "variable" },
+    "quota_heading": { "src": "variable" },
+    "quota_value": { "src": "variable" },
+    "quota_fraction": { "src": "variable" },
+    "quota_hide_bar": { "src": "variable" },
+    "quota_timing": { "src": "variable" },
+    "quota_status": { "src": "variable" }
+  },
+  "window": {
+    "padding": 20,
+    "root": {
+      "type": "view",
+      "layout": "inline",
+      "direction": "vertical",
+      "spacing": 10,
+      "events": {
+        "triggers": "preload",
+        "action": {
+          "type": "script",
+          "src": "/usr/bin/printf",
+          "args": [
+            "{\"update\":{\"ids\":{\"quota_meter\":{\"progress\":%s,\"hidden\":%s}}}}",
+            "{var:quota_fraction}",
+            "{var:quota_hide_bar}"
+          ]
+        }
+      },
+      "components": [
+        { "type": "label", "text": "{var:quota_heading}" },
+        { "type": "label", "text": "{var:quota_value}", "font": { "size": "large", "weight": "bold" } },
+        {
+          "type": "progress",
+          "id": "quota_meter",
+          "hidden": true,
+          "background": "quaternaryLabelColor",
+          "accessibility": { "label": "剩余额度" }
+        },
+        { "type": "label", "text": "{var:quota_timing}", "linebreak": "wordwrap" },
+        { "type": "label", "text": "{var:quota_status}", "linebreak": "wordwrap", "colour": "secondaryLabelColor" },
+        {
+          "type": "view",
+          "layout": "inline",
+          "spacing": 8,
+          "components": [
+            {
+              "type": "button",
+              "text": "复制摘要",
+              "shortcut": "⌘C",
+              "events": {
+                "triggers": "actioned",
+                "action": { "type": "json", "src": {
+                  "copy": { "type": "text", "src": "{var:quota_summary}" },
+                  "update": { "ids": { "copy": { "text": "已复制" } } }
+                } }
+              },
+              "id": "copy"
+            },
+            {
+              "type": "button",
+              "text": "刷新此服务",
+              "shortcut": "⌘R",
+              "events": {
+                "triggers": "actioned",
+                "action": { "type": "json", "src": { "finish": { "args": ["refresh:{var:quota_provider}"] } } }
+              }
+            },
+            {
+              "type": "button",
+              "text": "打开用量页",
+              "events": {
+                "triggers": "actioned",
+                "action": { "type": "json", "src": { "finish": { "args": ["{var:quota_provider}"] } } }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

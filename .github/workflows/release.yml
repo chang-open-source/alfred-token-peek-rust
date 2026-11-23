@@ -92,6 +92,8 @@ jobs:
           if-no-files-found: error
           path: |
             dist/alfred-token-peek.alfredworkflow
+            dist/alfred-token-peek-alfred5.alfredworkflow
+            dist/alfred-token-peek-alfred6.alfredworkflow
             dist/SHA256SUMS
             dist/RELEASE_NOTES.md
             dist/release-preparation.patch
@@ -110,6 +112,6 @@ jobs:
       - name: Publish release
         if: ${{ !inputs.dry_run }}
         run: |
-          gh release create "v$RELEASE_VERSION" dist/alfred-token-peek.alfredworkflow dist/SHA256SUMS \
+          gh release create "v$RELEASE_VERSION" dist/alfred-token-peek.alfredworkflow dist/alfred-token-peek-alfred{5,6}.alfredworkflow dist/SHA256SUMS \
             --verify-tag --title "Token Peek v$RELEASE_VERSION" --notes-file dist/RELEASE_NOTES.md --draft
           gh release edit "v$RELEASE_VERSION" --draft=false

@@ -6,7 +6,7 @@ Check **Codex and Claude plan usage and reset times** from Alfred. Built in Rust
 
 ## Install
 
-Requires **macOS 14+ and Alfred 5 Powerpack**.
+Requires **macOS 14+ and the Powerpack for Alfred 5 or 6**.
 
 One-command install:
 
@@ -14,7 +14,9 @@ One-command install:
 curl -fsSL https://raw.githubusercontent.com/chang-open-source/alfred-token-peek-rust/main/scripts/install.sh | bash
 ```
 
-Downloads, verifies, and installs the latest release directly into Alfred, preserving existing workflow settings. Or download `.alfredworkflow` from [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases) and double-click it.
+The installer prefers the running Alfred, verifies the matching package, and preserves workflow settings. If both versions are installed and neither is running, launch the intended version or replace the final `bash` above with `bash -s -- --alfred-major 6` (or `5`). After switching Alfred versions, run `usage update` to switch packages even at the same workflow version.
+
+For manual import, double-click the download ending in `-alfred5.alfredworkflow` (list view) or `-alfred6.alfredworkflow` (native details) from [Releases](https://github.com/chang-open-source/alfred-token-peek-rust/releases). Older releases have one generic package. Older updaters first install the list view. In Alfred 6, run `usage update` again to switch to native details.
 
 Sign in to the relevant service and configure a supported [CodexBar data source](https://github.com/steipete/CodexBar/blob/v0.84.0/docs/configuration.md). Detecting an installed app does not confirm authentication.
 
@@ -25,6 +27,7 @@ Sign in to the relevant service and configure a supported [CodexBar data source]
 | `usage update` | Check and install workflow updates |
 | `usage` | Show enabled services |
 | `usage codex` / `usage claude` | Filter by service |
+| ⌥ Return on a quota row (Alfred 6) | View quota, reset time, and cache status. Copy the summary, refresh that service, or open its usage page. Esc returns to the list |
 | Return | Open the service's usage page |
 | Select “刷新用量” (Refresh usage) | Refresh the current list |
 | ⌘ Return / ⌘C | Refresh one service / copy full details |

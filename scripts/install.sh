@@ -4,8 +4,21 @@ set -euo pipefail
 repo=chang-open-source/alfred-token-peek-rust
 asset=alfred-token-peek.alfredworkflow
 bundleid=com.chang.token-peek
-mode=${1:-install}
-[[ "$mode" == install || "$mode" == --update ]] || { echo 'Usage: install.sh [--update]' >&2; exit 1; }
+fail() { printf '%s\n' "$*" >&2; exit 1; }
+mode=install
+host_version=${alfred_version:-}
+major=${host_version%%.*}
+while (( $# )); do
+  case "$1" in
+    install|--update) mode=$1 ;;
+    --alfred-major)
+      [[ ${2:-} == 5 || ${2:-} == 6 ]] || fail 'Use --alfred-major 5 or --alfred-major 6.'
+      major=$2
+      shift ;;
+    *) fail 'Usage: install.sh [--update] [--alfred-major 5|6]' ;;
+  esac
+  shift
+done
 
 is_newer() {
   local latest_parts current_parts index
@@ -18,10 +31,29 @@ is_newer() {
   return 1
 }
 
-fail() { printf '%s\n' "$*" >&2; exit 1; }
-[[ "$(uname -s)" == Darwin ]] || fail 'Requires macOS 14+ and Alfred 5 Powerpack.'
+[[ "$(uname -s)" == Darwin ]] || fail 'Requires macOS 14+ and the Powerpack for Alfred 5 or 6.'
 version=$(sw_vers -productVersion)
 [[ "${version%%.*}" -ge 14 ]] || fail 'Requires macOS 14+.'
+if [[ -z "$major" ]]; then
+  detected=$(osascript -l JavaScript <<'JXA'
+ObjC.import('AppKit')
+function run() {
+  const id = 'com.runningwithcrayons.Alfred'
+  const running = $.NSRunningApplication.runningApplicationsWithBundleIdentifier(id)
+  const urls = running.count
+    ? ObjC.unwrap(running).map(app => app.bundleURL)
+    : ObjC.unwrap($.NSWorkspace.sharedWorkspace.URLsForApplicationsWithBundleIdentifier(id))
+  const majors = new Set(urls.map(url => {
+    const version = $.NSBundle.bundleWithURL(url).objectForInfoDictionaryKey('CFBundleShortVersionString')
+    return String(ObjC.unwrap(version)).split('.')[0]
+  }))
+  return majors.size === 1 ? Array.from(majors)[0] : ''
+}
+JXA
+  ) || fail 'Cannot detect Alfred. Specify --alfred-major 5 or --alfred-major 6.'
+  major=${detected%%.*}
+fi
+[[ "$major" == 5 || "$major" == 6 ]] || fail 'Start Alfred 5 or 6, or specify --alfred-major 5 or --alfred-major 6.'
 preferences=${alfred_preferences:-}
 if [[ -z "$preferences" ]]; then
   prefs_file="$HOME/Library/Application Support/Alfred/prefs.json"
@@ -34,8 +66,24 @@ fi
 workflows="$preferences/workflows"
 [[ -d "$workflows" ]] || fail 'Alfred preferences not found. Launch Alfred and activate Powerpack first.'
 
-tag=$(curl -fsSL --connect-timeout 15 --max-time 30 "https://api.github.com/repos/$repo/releases/latest" | plutil -extract tag_name raw -o - -)
+release=$(curl -fsSL --connect-timeout 15 --max-time 30 "https://api.github.com/repos/$repo/releases/latest")
+tag=$(plutil -extract tag_name raw -o - - <<< "$release")
 [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'No stable release found.'
+target_asset="alfred-token-peek-alfred$major.alfredworkflow"
+has_legacy=false
+has_variants=false
+index=0
+while name=$(plutil -extract "assets.$index.name" raw -o - - <<< "$release" 2>/dev/null); do
+  case "$name" in
+    "$target_asset") asset=$target_asset; has_variants=true ;;
+    alfred-token-peek-alfred[56].alfredworkflow) has_variants=true ;;
+    alfred-token-peek.alfredworkflow) has_legacy=true ;;
+  esac
+  index=$((index + 1))
+done
+if [[ "$asset" != "$target_asset" ]]; then
+  [[ "$has_variants" == false && "$has_legacy" == true ]] || fail "Release $tag has no package for Alfred $major."
+fi
 temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/token-peek.XXXXXX")
 stage=
 backup=
@@ -65,7 +113,10 @@ if [[ "$mode" == --update ]]; then
   [[ -n "$destination" ]] || fail 'Token Peek is not installed.'
   current=$(plutil -extract version raw -o - "$destination/info.plist")
   [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'Invalid installed version.'
-  if ! is_newer "${tag#v}" "$current"; then
+  installed_major=$(plutil -extract variables.token_peek_alfred_major raw -o - "$destination/info.plist" 2>/dev/null || true)
+  if is_newer "$current" "${tag#v}" || {
+    [[ "${tag#v}" == "$current" ]] && [[ "$has_variants" == false || "$installed_major" == "$major" ]]
+  }; then
     printf '当前版本 v%s，无需更新。\n' "$current"
     exit 0
   fi
@@ -86,6 +137,9 @@ ditto -x -k "$temp_dir/$asset" "$temp_dir/unpacked"
 package="$temp_dir/unpacked"
 [[ "$(plutil -extract bundleid raw -o - "$package/info.plist")" == "$bundleid" ]] || fail 'Unexpected workflow bundle ID.'
 [[ "$(plutil -extract version raw -o - "$package/info.plist")" == "${tag#v}" ]] || fail 'Unexpected workflow version.'
+if [[ "$has_variants" == true ]]; then
+  [[ "$(plutil -extract variables.token_peek_alfred_major raw -o - "$package/info.plist")" == "$major" ]] || fail 'Unexpected Alfred package variant.'
+fi
 [[ -x "$package/token-peek" && -x "$package/action.sh" ]] || fail 'Workflow executables are missing.'
 
 stage=$(mktemp -d "$workflows/.token-peek.XXXXXX")

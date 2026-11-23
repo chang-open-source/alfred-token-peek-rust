@@ -51,4 +51,6 @@ jobs:
           retention-days: 7
           path: |
             dist/alfred-token-peek.alfredworkflow
+            dist/alfred-token-peek-alfred5.alfredworkflow
+            dist/alfred-token-peek-alfred6.alfredworkflow
             dist/SHA256SUMS

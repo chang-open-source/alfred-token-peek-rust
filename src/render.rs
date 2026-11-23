@@ -96,6 +96,16 @@ pub fn render_selected(cache: &Cache, query: &str, loading: bool, providers: &[&
     render_status(cache, query, refreshing, providers)
 }
 pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers: &[&str]) -> Value {
+    render_status_with_details(cache, query, refreshing, providers, false)
+}
+
+pub fn render_status_with_details(
+    cache: &Cache,
+    query: &str,
+    refreshing: &[&str],
+    providers: &[&str],
+    native_details: bool,
+) -> Value {
     let query = query.trim().to_lowercase();
     let shown: Vec<_> = providers
         .iter()
@@ -182,24 +192,40 @@ pub fn render_status(cache: &Cache, query: &str, refreshing: &[&str], providers:
                         format!("{}分钟前更新", age / 60)
                     });
                 }
+                if native_details {
+                    parts.push("⌥↩ 详情".into());
+                }
                 let subtitle = parts.join(" · ");
-                let title = format!("{name} · {} · {quota}", window_label(&w.label));
+                let heading = format!("{name} · {}", window_label(&w.label));
+                let title = format!("{heading} · {quota}");
                 let used = w
                     .used
                     .map(|value| format!(" · 已用 {value:.0}%"))
                     .unwrap_or_default();
-                let details = format!(
-                    "{title}{used}\n{}{} · {}前获取{}{}{}",
-                    forecast
-                        .map(|text| format!("{text} · "))
-                        .unwrap_or_default(),
-                    reset,
+                let status = format!(
+                    "{}前获取{}{}{}",
                     duration_text(age),
                     if stale { " · 缓存已过期" } else { "" },
                     if loading { " · 刷新中" } else { "" },
                     source
                 );
-                items.push(json!({"uid":format!("{p}-{i}"),"title":title,"subtitle":subtitle,"arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")},"text":{"copy":details}}));
+                let timing = forecast
+                    .map(|text| format!("{text} · {reset}"))
+                    .unwrap_or(reset);
+                let details = format!("{title}{used}\n{timing} · {status}");
+                let mut item = json!({"uid":format!("{p}-{i}"),"title":title,"subtitle":subtitle,"arg":p,"valid":true,"mods":{"cmd":{"arg":format!("refresh:{p}"),"subtitle":"刷新此服务","valid":!loading}},"icon":{"path":format!("icons/{p}.png")},"text":{"copy":details}});
+                if native_details {
+                    item["mods"]["alt"] = json!({
+                        "valid": true, "arg": p, "subtitle": "查看额度详情",
+                        "variables": {
+                            "quota_heading": heading, "quota_value": quota, "quota_timing": timing,
+                            "quota_summary": details,
+                            "quota_status": format!("打开详情时 · {status}"), "quota_hide_bar": w.used.is_none().to_string(),
+                            "quota_fraction": w.used.map_or(0.0, |used| (100.0 - used) / 100.0).to_string()
+                        }
+                    });
+                }
+                items.push(item);
             }
             if let Some(credits) = snapshot.reset_credits.as_ref().filter(|_| p == "codex") {
                 let expiry = credits
